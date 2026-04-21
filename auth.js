@@ -12,7 +12,7 @@ function _sbClient(){
   if(_sb) return _sb;
   if(!window.supabase || SUPABASE_URL === 'YOUR_SUPABASE_URL') return null;
   _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-    auth: { persistSession: true, detectSessionInUrl: true }
+    auth: { persistSession: true, detectSessionInUrl: true, flowType: 'implicit' }
   });
   return _sb;
 }
