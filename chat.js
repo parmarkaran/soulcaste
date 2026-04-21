@@ -9,7 +9,14 @@ const OLLAMA_URL    = `http://${window.location.hostname}:11434/api/chat`;
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const PROXY_URL      = '/api/chat';  // Netlify edge function — uses owner's key server-side
 const DEFAULT_MODEL_OLLAMA = 'llama3.2';
-const DEFAULT_MODEL_OR     = 'mistralai/mistral-7b-instruct:free';
+const DEFAULT_MODEL_OR     = 'google/gemma-3-4b-it:free';
+// Fallback free models tried in order if primary has no endpoints
+const OR_FREE_FALLBACKS = [
+  'google/gemma-3-4b-it:free',
+  'meta-llama/llama-3.2-3b-instruct:free',
+  'deepseek/deepseek-r1:free',
+  'qwen/qwen3-30b-a3b:free',
+];
 const DEFAULT_MODEL = DEFAULT_MODEL_OLLAMA; // legacy fallback
 const MODEL_KEY     = 'cv_model';
 const PROVIDER_KEY  = 'cv_provider';   // 'ollama' | 'openrouter'
@@ -684,18 +691,30 @@ async function streamCompletion(messages, typingId){
         // On deployed site: use server-side proxy (owner's key), optionally pass user's own key
         const headers = { 'Content-Type': 'application/json' };
         if(userKey) headers['X-User-Key'] = userKey;  // user's own key takes priority in proxy
-        res = await fetch(PROXY_URL, {
-          method:  'POST',
-          headers,
-          signal:  abortCtrl.signal,
-          body: JSON.stringify({
-            model:      getModel(),
-            messages,
-            stream:     true,
-            max_tokens: maxTokens,
-            temperature: 0.92,
-          }),
-        });
+
+        // Try primary model, then fallbacks if no endpoints
+        let lastErr = null;
+        for(const tryModel of [getModel(), ...OR_FREE_FALLBACKS.filter(m => m !== getModel())]){
+          res = await fetch(PROXY_URL, {
+            method:  'POST',
+            headers,
+            signal:  abortCtrl.signal,
+            body: JSON.stringify({
+              model:      tryModel,
+              messages,
+              stream:     true,
+              max_tokens: maxTokens,
+              temperature: 0.92,
+            }),
+          });
+          if(res.ok) break;
+          const body = await res.text().catch(()=>'');
+          if(body.includes('No endpoints found') || body.includes('no endpoints')){
+            lastErr = `No endpoints for ${tryModel}, trying next...`;
+            continue; // try next fallback
+          }
+          break; // different error — don't retry
+        }
       }
     } else {
       res = await fetch(OLLAMA_URL, {
