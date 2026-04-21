@@ -31,18 +31,19 @@ let abortCtrl   = null;   // AbortController for current stream
 let histFilter  = 'all';  // history panel folder filter
 let toastT      = null;   // toast timeout handle
 
-function getModel() {
-  const stored = localStorage.getItem(MODEL_KEY);
-  if(stored) return stored;
-  const isLocal = ['localhost','127.0.0.1'].includes(location.hostname) || location.hostname.startsWith('192.168.');
-  return isLocal ? DEFAULT_MODEL_OLLAMA : DEFAULT_MODEL_OR;
-}
 // Default to OpenRouter when not on localhost (deployed site)
 function getProvider() {
-  const stored = localStorage.getItem(PROVIDER_KEY);
-  if(stored) return stored;
   const isLocal = ['localhost','127.0.0.1'].includes(location.hostname) || location.hostname.startsWith('192.168.');
-  return isLocal ? 'ollama' : 'openrouter';
+  if(!isLocal) return 'openrouter'; // always OpenRouter on deployed site
+  return localStorage.getItem(PROVIDER_KEY) || 'ollama';
+}
+function getModel() {
+  const isLocal = ['localhost','127.0.0.1'].includes(location.hostname) || location.hostname.startsWith('192.168.');
+  const stored = localStorage.getItem(MODEL_KEY);
+  if(isLocal) return stored || DEFAULT_MODEL_OLLAMA;
+  // On deployed site: if stored model has no '/' it's an Ollama model name — ignore it
+  if(stored && stored.includes('/')) return stored;
+  return DEFAULT_MODEL_OR;
 }
 function getORKey()    { return localStorage.getItem(OR_KEY_STORE) || ''; }
 
