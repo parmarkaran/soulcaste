@@ -8,7 +8,9 @@
 const OLLAMA_URL    = `http://${window.location.hostname}:11434/api/chat`;
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const PROXY_URL      = '/api/chat';  // Netlify edge function — uses owner's key server-side
-const DEFAULT_MODEL = 'llama3.2';
+const DEFAULT_MODEL_OLLAMA = 'llama3.2';
+const DEFAULT_MODEL_OR     = 'meta-llama/llama-3.1-8b-instruct:free';
+const DEFAULT_MODEL = DEFAULT_MODEL_OLLAMA; // legacy fallback
 const MODEL_KEY     = 'cv_model';
 const PROVIDER_KEY  = 'cv_provider';   // 'ollama' | 'openrouter'
 const OR_KEY_STORE  = 'cv_or_key';     // OpenRouter API key
@@ -29,7 +31,12 @@ let abortCtrl   = null;   // AbortController for current stream
 let histFilter  = 'all';  // history panel folder filter
 let toastT      = null;   // toast timeout handle
 
-function getModel()    { return localStorage.getItem(MODEL_KEY)    || DEFAULT_MODEL; }
+function getModel() {
+  const stored = localStorage.getItem(MODEL_KEY);
+  if(stored) return stored;
+  const isLocal = ['localhost','127.0.0.1'].includes(location.hostname) || location.hostname.startsWith('192.168.');
+  return isLocal ? DEFAULT_MODEL_OLLAMA : DEFAULT_MODEL_OR;
+}
 // Default to OpenRouter when not on localhost (deployed site)
 function getProvider() {
   const stored = localStorage.getItem(PROVIDER_KEY);
@@ -831,6 +838,17 @@ function esc(s){
 
 function friendlyError(msg){
   const m = getModel();
+  const provider = getProvider();
+  if(provider === 'openrouter'){
+    if(msg.includes('404') || msg.toLowerCase().includes('model'))
+      return `Model <strong>${m}</strong> not found on OpenRouter.<br>Open ⚙ Model and pick a valid model like <code>meta-llama/llama-3.1-8b-instruct:free</code>`;
+    if(msg.includes('401') || msg.toLowerCase().includes('api key') || msg.toLowerCase().includes('unauthorized'))
+      return `Invalid API key. Open ⚙ Model and check your OpenRouter key.`;
+    if(msg.includes('429'))
+      return `Rate limit reached. Wait a moment or add your own OpenRouter key in ⚙ Model.`;
+    return `OpenRouter error: ${msg}`;
+  }
+  // Ollama errors
   if(msg.includes('Failed to connect') || msg.includes('fetch'))
     return `Ollama isn't running!<br>Launch the <strong>Ollama</strong> desktop app.`;
   if(msg.includes('404') || msg.toLowerCase().includes('model'))
