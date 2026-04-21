@@ -7,6 +7,7 @@
 // Dynamically use the current hostname — works for both localhost and phone LAN access
 const OLLAMA_URL    = `http://${window.location.hostname}:11434/api/chat`;
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const PROXY_URL      = '/api/chat';  // Netlify edge function — uses owner's key server-side
 const DEFAULT_MODEL = 'llama3.2';
 const MODEL_KEY     = 'cv_model';
 const PROVIDER_KEY  = 'cv_provider';   // 'ollama' | 'openrouter'
@@ -649,15 +650,16 @@ async function streamCompletion(messages, typingId){
   try {
     if(provider === 'openrouter'){
       const isLocal = ['localhost','127.0.0.1'].includes(location.hostname) || location.hostname.startsWith('192.168.');
+      const userKey = getORKey();
+
       if(isLocal){
-        // Local dev: use direct OpenRouter call with user's key
-        const apiKey = getORKey();
-        if(!apiKey) throw new Error('No OpenRouter API key set. Open ⚙ Model to add one.');
+        // On local: must have a key (no server proxy)
+        if(!userKey) throw new Error('No OpenRouter API key set. Open ⚙ Model to add one.');
         res = await fetch(OPENROUTER_URL, {
           method:  'POST',
           headers: {
             'Content-Type':  'application/json',
-            'Authorization': `Bearer ${apiKey}`,
+            'Authorization': `Bearer ${userKey}`,
             'HTTP-Referer':  window.location.origin,
             'X-Title':       'Soulcaste',
           },
@@ -671,10 +673,12 @@ async function streamCompletion(messages, typingId){
           }),
         });
       } else {
-        // Deployed site: use server-side proxy (API key stored in Netlify env vars)
-        res = await fetch('/api/chat', {
+        // On deployed site: use server-side proxy (owner's key), optionally pass user's own key
+        const headers = { 'Content-Type': 'application/json' };
+        if(userKey) headers['X-User-Key'] = userKey;  // user's own key takes priority in proxy
+        res = await fetch(PROXY_URL, {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           signal:  abortCtrl.signal,
           body: JSON.stringify({
             model:      getModel(),
