@@ -1084,8 +1084,9 @@ function saveModel(){
     model = txt || document.getElementById('model-select-chat')?.value || 'llama3.2';
   } else {
     const orKey = document.getElementById('or-api-key')?.value.trim();
-    if(!orKey){ showToast('Enter your OpenRouter API key','err'); return; }
-    localStorage.setItem(OR_KEY_STORE, orKey);
+    const isLocal = ['localhost','127.0.0.1'].includes(location.hostname) || location.hostname.startsWith('192.168.');
+    if(isLocal && !orKey){ showToast('Enter your OpenRouter API key','err'); return; }
+    if(orKey) localStorage.setItem(OR_KEY_STORE, orKey);
     const txt = document.getElementById('model-input-or')?.value.trim();
     model = txt || document.getElementById('model-select-or')?.value || '';
     if(!model){ showToast('Select or type a model','err'); return; }
