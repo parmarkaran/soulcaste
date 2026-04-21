@@ -14,8 +14,12 @@ const DEFAULT_MODEL_OR     = 'google/gemma-3-4b-it:free';
 const OR_FREE_FALLBACKS = [
   'google/gemma-3-4b-it:free',
   'meta-llama/llama-3.2-3b-instruct:free',
+  'meta-llama/llama-3.1-8b-instruct:free',
   'deepseek/deepseek-r1:free',
   'qwen/qwen3-30b-a3b:free',
+  'mistralai/mistral-7b-instruct:free',
+  'microsoft/phi-3-mini-128k-instruct:free',
+  'openchat/openchat-7b:free',
 ];
 const DEFAULT_MODEL = DEFAULT_MODEL_OLLAMA; // legacy fallback
 const MODEL_KEY     = 'cv_model';
@@ -857,12 +861,14 @@ function friendlyError(msg){
   const m = getModel();
   const provider = getProvider();
   if(provider === 'openrouter'){
-    if(msg.includes('404') || msg.toLowerCase().includes('model'))
-      return `Model <strong>${m}</strong> not found on OpenRouter.<br>Open ⚙ Model and pick a valid model like <code>meta-llama/llama-3.1-8b-instruct:free</code>`;
-    if(msg.includes('401') || msg.toLowerCase().includes('api key') || msg.toLowerCase().includes('unauthorized'))
+    if(msg.includes('401') || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('api key'))
       return `Invalid API key. Open ⚙ Model and check your OpenRouter key.`;
     if(msg.includes('429'))
       return `Rate limit reached. Wait a moment or add your own OpenRouter key in ⚙ Model.`;
+    if(msg.includes('All free models'))
+      return `All free AI models are temporarily offline. Please try again in a few minutes.`;
+    if(msg.includes('404') || (msg.toLowerCase().includes('model') && !msg.toLowerCase().includes('offline')))
+      return `Model <strong>${m}</strong> not found on OpenRouter.<br>Open ⚙ Model and pick a valid model like <code>meta-llama/llama-3.1-8b-instruct:free</code>`;
     return `OpenRouter error: ${msg}`;
   }
   // Ollama errors
