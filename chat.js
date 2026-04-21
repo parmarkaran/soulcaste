@@ -702,16 +702,14 @@ async function streamCompletion(messages, typingId){
             body: JSON.stringify({ model: tryModel, messages, stream: true, max_tokens: maxTokens, temperature: 0.92 }),
           });
           if(attempt.ok){ res = attempt; succeeded = true; break; }
-          // Read error body to decide whether to retry
           const errText = await attempt.text().catch(()=>'');
-          const noEndpoints = errText.includes('No endpoints') || errText.includes('no endpoints');
-          if(!noEndpoints){
-            // Not a "no endpoints" issue — surface the real error immediately
-            let msg = `${attempt.status}`;
-            try{ const j = JSON.parse(errText); msg = j?.error?.message || j?.error || msg; }catch(_){}
-            throw new Error(msg);
+          // Only stop retrying on auth errors — try next model for everything else
+          if(attempt.status === 401 || attempt.status === 403){
+            let msg = errText;
+            try{ const j = JSON.parse(errText); msg = j?.error?.message || j?.error || errText; }catch(_){}
+            throw new Error(msg || `Auth error ${attempt.status}`);
           }
-          // else: no endpoints for this model, try next
+          // For 404/no endpoints/model not found → try next fallback
         }
         if(!succeeded) throw new Error('All free models are currently offline. Try again in a moment.');
       }
