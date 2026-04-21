@@ -13,7 +13,8 @@ export default async function handler(request, context) {
 
   // Pick key: user's own key takes priority, else fall back to owner key
   const userKey  = request.headers.get('X-User-Key');
-  const ownerKey = Deno.env.get('OR_KEY');
+  // Netlify Edge Functions: env vars accessible via Deno.env
+  const ownerKey = Netlify.env.get('OR_KEY') ?? Deno.env.get('OR_KEY');
   const apiKey   = (userKey && userKey.startsWith('sk-')) ? userKey : ownerKey;
 
   if (!apiKey) {
