@@ -9,16 +9,15 @@ const OLLAMA_URL    = `http://${window.location.hostname}:11434/api/chat`;
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const PROXY_URL      = '/api/chat';  // Netlify edge function — uses owner's key server-side
 const DEFAULT_MODEL_OLLAMA = 'llama3.2';
-const DEFAULT_MODEL_OR     = 'openai/gpt-4o-mini';
+const DEFAULT_MODEL_OR     = 'meta-llama/llama-3.1-8b-instruct:free';
 // Fallback free models tried in order if primary fails
 const OR_FREE_FALLBACKS = [
-  'openai/gpt-4o-mini',
-  'google/gemma-3-4b-it:free',
-  'meta-llama/llama-3.2-3b-instruct:free',
   'meta-llama/llama-3.1-8b-instruct:free',
+  'meta-llama/llama-3.2-3b-instruct:free',
+  'google/gemma-3-4b-it:free',
+  'mistralai/mistral-7b-instruct:free',
   'deepseek/deepseek-r1:free',
   'qwen/qwen3-30b-a3b:free',
-  'mistralai/mistral-7b-instruct:free',
   'microsoft/phi-3-mini-128k-instruct:free',
 ];
 const DEFAULT_MODEL = DEFAULT_MODEL_OLLAMA; // legacy fallback
