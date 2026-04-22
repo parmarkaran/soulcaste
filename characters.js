@@ -498,13 +498,11 @@ function saveCustomCharacter(char) {
   if (idx >= 0) existing[idx] = char;
   else existing.push(char);
   localStorage.setItem(CUSTOM_CHARS_KEY, JSON.stringify(existing));
-  window.pushCharsToCloud?.();  // sync to cloud if logged in
 }
 
 function deleteCustomCharacter(id) {
   const existing = getCustomCharacters().filter(c => c.id !== id);
   localStorage.setItem(CUSTOM_CHARS_KEY, JSON.stringify(existing));
-  window.pushCharsToCloud?.();  // sync to cloud if logged in
 }
 
 function getCharacterById(id) {

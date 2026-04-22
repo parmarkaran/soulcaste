@@ -78,10 +78,8 @@ function saveConvs(arr){
   _convsCache = arr;
   return encryptData(JSON.stringify(arr)).then(enc => {
     localStorage.setItem(convsKey(), enc);
-    window.pushConvsToCloud?.(character?.id); // sync to cloud if logged in
   }).catch(() => {
     localStorage.setItem(convsKey(), JSON.stringify(arr));
-    window.pushConvsToCloud?.(character?.id);
   });
 }
 
@@ -193,9 +191,7 @@ function migrateLegacy(){
 // ══════════════════════════════════════════════════════════════
 
 (async function init(){
-  await initCrypto();   // show password modal — blocks until authenticated
-  initAuth().catch(()=>{}); // start auth in background — non-blocking
-
+  await initCrypto();
   initParticles();
 
   const params = new URLSearchParams(window.location.search);
@@ -707,11 +703,15 @@ async function streamCompletion(messages, typingId){
           });
           if(attempt.ok){ res = attempt; succeeded = true; break; }
           const errText = await attempt.text().catch(()=>'');
-          // Only stop retrying on auth errors — try next model for everything else
+          let parsedMsg = errText;
+          try{ const j = JSON.parse(errText); parsedMsg = j?.error?.message || j?.error || errText; }catch(_){}
+          // Auth errors — stop immediately
           if(attempt.status === 401 || attempt.status === 403){
-            let msg = errText;
-            try{ const j = JSON.parse(errText); msg = j?.error?.message || j?.error || errText; }catch(_){}
-            throw new Error(msg || `Auth error ${attempt.status}`);
+            throw new Error(parsedMsg || `Auth error ${attempt.status}`);
+          }
+          // Proxy-level server error (e.g. OR_KEY not configured) — stop immediately, don't retry models
+          if(attempt.status === 500 && typeof parsedMsg === 'string' && parsedMsg.includes('API key')){
+            throw new Error(parsedMsg);
           }
           // For 404/no endpoints/model not found → try next fallback
         }
@@ -861,7 +861,9 @@ function friendlyError(msg){
   const m = getModel();
   const provider = getProvider();
   if(provider === 'openrouter'){
-    if(msg.includes('401') || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('api key'))
+    if(msg.toLowerCase().includes('no api key configured'))
+      return `Server API key not configured. Set the <code>OR_KEY</code> environment variable in your Cloudflare Pages → Settings → Environment variables, then redeploy.`;
+    if(msg.includes('401') || msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('invalid api key'))
       return `Invalid API key. Open ⚙ Model and check your OpenRouter key.`;
     if(msg.includes('429'))
       return `Rate limit reached. Wait a moment or add your own OpenRouter key in ⚙ Model.`;

@@ -7,8 +7,6 @@
 <meta name="description" content="Chat with richly crafted AI characters — warriors, witches, hackers, gods. Free and immersive."/>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌌</text></svg>"/>
 <link rel="stylesheet" href="style.css"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="supabase-config.js"></script>
 </head>
 <body>
 
@@ -29,8 +27,6 @@
     <li id="nav-ollama-btn"><a href="#" onclick="openSetupModal();return false" class="nav-pill">🤖 Ollama Setup</a></li>
   </ul>
   <button class="nav-hist-btn" onclick="openHomeHist()" title="All Chats">💬 Chats</button>
-  <button class="auth-login-btn" id="auth-login-btn" onclick="openLoginModal()" style="display:none">Sign In</button>
-  <div class="auth-user-menu" id="auth-user-menu" style="display:none"></div>
   <button class="hamburger" id="hamburger" aria-label="Menu">☰</button>
 </nav>
 
@@ -321,7 +317,6 @@
      SCRIPTS
 ════════════════════════════════════════ -->
 <script src="crypto-utils.js"></script>
-<script src="auth.js"></script>
 <script src="characters.js"></script>
 <script>
 /* ─── Particles ──────────────────────── */
@@ -765,7 +760,6 @@ document.getElementById('create-overlay').addEventListener('click',function(e){i
 /* ─── Init ───────────────────────────── */
 (async function(){
   await initCrypto();
-  await initAuth();
   // Hide Ollama Setup button on deployed site (Ollama only works locally)
   const isLocal = ['localhost','127.0.0.1'].includes(location.hostname) || location.hostname.startsWith('192.168.');
   if(!isLocal) document.getElementById('nav-ollama-btn')?.style.setProperty('display','none');
